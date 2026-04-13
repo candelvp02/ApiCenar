@@ -1,32 +1,51 @@
-import { validationResult } from 'express-validator';
-import * as configurationsService from '../services/configurationsService.js';
+import Configuration from '../models/Configuration.js';
 
-export const getConfigurations = async (req, res) => {
+export async function GetConfigurations(req, res, next) {
   try {
-    const data = await configurationsService.getConfigurationsService();
+    const data = await Configuration.find();
     res.status(200).json(data);
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
-};
+}
 
-export const getConfigurationByKey = async (req, res) => {
+export async function GetConfigurationByKey(req, res, next) {
   try {
-    const data = await configurationsService.getConfigurationByKeyService(req.params.key);
-    res.status(200).json(data);
-  } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
-  }
-};
+    const config = await Configuration.findOne({ key: req.params.key });
 
-export const updateConfiguration = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    if (!config) {
+      const error = new Error('Configuración no encontrada.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    res.status(200).json(config);
+  } catch (err) {
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
+  }
+}
+
+export async function UpdateConfiguration(req, res, next) {
+  const { value } = req.body;
 
   try {
-    const data = await configurationsService.updateConfigurationService(req.params.key, req.body.value);
-    res.status(200).json(data);
+    const config = await Configuration.findOneAndUpdate(
+      { key: req.params.key },
+      { value },
+      { new: true }
+    );
+
+    if (!config) {
+      const error = new Error('Configuración no encontrada.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    res.status(200).json(config);
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
-};
+}

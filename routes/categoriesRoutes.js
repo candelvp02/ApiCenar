@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { authenticate } from '../middlewares/authMiddleware.js';
-import { authorize } from '../middlewares/roleMiddleware.js';
+import { Authenticate } from '../middlewares/authMiddleware.js';
+import { Authorize } from '../middlewares/roleMiddleware.js';
 import * as categoriesController from '../controllers/categoriesController.js';
 
 const router = Router();
@@ -19,9 +19,13 @@ const categoryValidation = [
  *     tags: [Categories]
  *     responses:
  *       200:
- *         description: Lista de categorías
+ *         description: Lista de categorías con cantidad de productos
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/', authenticate, authorize('Commerce'), categoriesController.getMyCategories);
+router.get('/', Authenticate, Authorize('Commerce'), categoriesController.GetMyCategories);
 
 /**
  * @swagger
@@ -38,8 +42,14 @@ router.get('/', authenticate, authorize('Commerce'), categoriesController.getMyC
  *     responses:
  *       200:
  *         description: Categoría encontrada
+ *       404:
+ *         description: Categoría no encontrada
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/:id', authenticate, authorize('Commerce'), categoriesController.getCategoryById);
+router.get('/:id', Authenticate, Authorize('Commerce'), categoriesController.GetCategoryById);
 
 /**
  * @swagger
@@ -47,11 +57,29 @@ router.get('/:id', authenticate, authorize('Commerce'), categoriesController.get
  *   post:
  *     summary: Crear categoría (Commerce)
  *     tags: [Categories]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, description]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
  *     responses:
  *       201:
  *         description: Categoría creada
+ *       400:
+ *         description: Bad Request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.post('/', authenticate, authorize('Commerce'), categoryValidation, categoriesController.createCategory);
+router.post('/', Authenticate, Authorize('Commerce'), categoryValidation, categoriesController.CreateCategory);
 
 /**
  * @swagger
@@ -65,11 +93,28 @@ router.post('/', authenticate, authorize('Commerce'), categoryValidation, catego
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Categoría actualizada
+ *       404:
+ *         description: Categoría no encontrada
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.put('/:id', authenticate, authorize('Commerce'), categoryValidation, categoriesController.updateCategory);
+router.put('/:id', Authenticate, Authorize('Commerce'), categoryValidation, categoriesController.UpdateCategory);
 
 /**
  * @swagger
@@ -86,7 +131,13 @@ router.put('/:id', authenticate, authorize('Commerce'), categoryValidation, cate
  *     responses:
  *       204:
  *         description: Categoría eliminada
+ *       404:
+ *         description: Categoría no encontrada
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.delete('/:id', authenticate, authorize('Commerce'), categoriesController.deleteCategory);
+router.delete('/:id', Authenticate, Authorize('Commerce'), categoriesController.DeleteCategory);
 
 export default router;

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/authMiddleware.js';
-import { authorize } from '../middlewares/roleMiddleware.js';
+import { Authenticate } from '../middlewares/authMiddleware.js';
+import { Authorize } from '../middlewares/roleMiddleware.js';
 import * as commerceCatalogController from '../controllers/commerceCatalogController.js';
 
 const router = Router();
@@ -9,7 +9,7 @@ const router = Router();
  * @swagger
  * /api/commerce-types:
  *   get:
- *     summary: Obtener tipos de comercio (Client)
+ *     summary: Obtener tipos de comercio activos (Client)
  *     tags: [Commerce Catalog]
  *     parameters:
  *       - in: query
@@ -24,49 +24,22 @@ const router = Router();
  *         name: search
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortDirection
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: Lista de tipos de comercio
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/', authenticate, authorize('Client'), commerceCatalogController.getCommerceTypes);
-
-/**
- * @swagger
- * /api/commerce:
- *   get:
- *     summary: Obtener comercios activos (Client)
- *     tags: [Commerce Catalog]
- *     parameters:
- *       - in: query
- *         name: commerceTypeId
- *         schema:
- *           type: string
- *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Lista de comercios
- */
-router.get('/', authenticate, authorize('Client'), commerceCatalogController.getCommercesByType);
-
-/**
- * @swagger
- * /api/commerce/{commerceId}/catalog:
- *   get:
- *     summary: Obtener catálogo de un comercio
- *     tags: [Commerce Catalog]
- *     parameters:
- *       - in: path
- *         name: commerceId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Catálogo del comercio
- */
-router.get('/:commerceId/catalog', authenticate, authorize('Client'), commerceCatalogController.getCommerceCatalog);
+router.get('/', Authenticate, Authorize('Client'), commerceCatalogController.GetCommerceTypes);
 
 export default router;

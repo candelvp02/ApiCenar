@@ -7,6 +7,7 @@ import { connectDB } from './utils/db.js';
 import { swaggerDocs } from './utils/swagger.js';
 import { seedDatabase } from './utils/seed.js';
 import router from './routes/index.js';
+import { errorHandler } from './middlewares/errorMiddleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +30,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.use('/api', router);
+
+app.use(errorHandler);
 
 swaggerDocs(app);
 

@@ -36,7 +36,7 @@ router.post(
     body('userNameOrEmail').notEmpty().withMessage('userNameOrEmail es requerido'),
     body('password').notEmpty().withMessage('password es requerido'),
   ],
-  authController.login
+  authController.Login
 );
 
 /**
@@ -86,13 +86,10 @@ router.post(
     body('userName').notEmpty().withMessage('userName es requerido'),
     body('email').isEmail().withMessage('email inválido'),
     body('password').isLength({ min: 6 }).withMessage('password mínimo 6 caracteres'),
-    body('confirmPassword').custom((value, { req }) => {
-      if (value !== req.body.password) throw new Error('Las contraseñas no coinciden');
-      return true;
-    }),
+    body('confirmPassword').notEmpty().withMessage('confirmPassword es requerido'),
     body('phone').notEmpty().withMessage('phone es requerido'),
   ],
-  authController.registerClient
+  authController.RegisterClient
 );
 
 /**
@@ -108,6 +105,7 @@ router.post(
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required: [firstName, lastName, userName, email, password, confirmPassword, phone, profileImage]
  *             properties:
  *               firstName:
  *                 type: string
@@ -129,6 +127,8 @@ router.post(
  *     responses:
  *       201:
  *         description: Delivery registrado
+ *       409:
+ *         description: userName o email ya existen
  */
 router.post(
   '/register-delivery',
@@ -139,13 +139,10 @@ router.post(
     body('userName').notEmpty().withMessage('userName es requerido'),
     body('email').isEmail().withMessage('email inválido'),
     body('password').isLength({ min: 6 }).withMessage('password mínimo 6 caracteres'),
-    body('confirmPassword').custom((value, { req }) => {
-      if (value !== req.body.password) throw new Error('Las contraseñas no coinciden');
-      return true;
-    }),
+    body('confirmPassword').notEmpty().withMessage('confirmPassword es requerido'),
     body('phone').notEmpty().withMessage('phone es requerido'),
   ],
-  authController.registerDelivery
+  authController.RegisterDelivery
 );
 
 /**
@@ -161,6 +158,7 @@ router.post(
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required: [userName, email, password, confirmPassword, name, phone, openingTime, closingTime, commerceTypeId, logo]
  *             properties:
  *               userName:
  *                 type: string
@@ -188,6 +186,8 @@ router.post(
  *     responses:
  *       201:
  *         description: Comercio registrado
+ *       409:
+ *         description: userName o email ya existen
  */
 router.post(
   '/register-commerce',
@@ -196,17 +196,14 @@ router.post(
     body('userName').notEmpty().withMessage('userName es requerido'),
     body('email').isEmail().withMessage('email inválido'),
     body('password').isLength({ min: 6 }).withMessage('password mínimo 6 caracteres'),
-    body('confirmPassword').custom((value, { req }) => {
-      if (value !== req.body.password) throw new Error('Las contraseñas no coinciden');
-      return true;
-    }),
+    body('confirmPassword').notEmpty().withMessage('confirmPassword es requerido'),
     body('name').notEmpty().withMessage('name es requerido'),
     body('phone').notEmpty().withMessage('phone es requerido'),
     body('openingTime').notEmpty().withMessage('openingTime es requerido'),
     body('closingTime').notEmpty().withMessage('closingTime es requerido'),
     body('commerceTypeId').notEmpty().withMessage('commerceTypeId es requerido'),
   ],
-  authController.registerCommerce
+  authController.RegisterCommerce
 );
 
 /**
@@ -229,11 +226,17 @@ router.post(
  *     responses:
  *       200:
  *         description: Cuenta activada
+ *       400:
+ *         description: Token inválido o expirado
+ *       404:
+ *         description: Token no encontrado
  */
 router.post(
   '/confirm-email',
-  [body('token').notEmpty().withMessage('token es requerido')],
-  authController.confirmEmail
+  [
+    body('token').notEmpty().withMessage('token es requerido'),
+  ],
+  authController.ConfirmEmail
 );
 
 /**
@@ -259,8 +262,10 @@ router.post(
  */
 router.post(
   '/forgot-password',
-  [body('userNameOrEmail').notEmpty().withMessage('userNameOrEmail es requerido')],
-  authController.forgotPassword
+  [
+    body('userNameOrEmail').notEmpty().withMessage('userNameOrEmail es requerido'),
+  ],
+  authController.ForgotPassword
 );
 
 /**
@@ -287,18 +292,17 @@ router.post(
  *     responses:
  *       200:
  *         description: Contraseña restablecida
+ *       400:
+ *         description: Token inválido o expirado
  */
 router.post(
   '/reset-password',
   [
     body('token').notEmpty().withMessage('token es requerido'),
     body('password').isLength({ min: 6 }).withMessage('password mínimo 6 caracteres'),
-    body('confirmPassword').custom((value, { req }) => {
-      if (value !== req.body.password) throw new Error('Las contraseñas no coinciden');
-      return true;
-    }),
+    body('confirmPassword').notEmpty().withMessage('confirmPassword es requerido'),
   ],
-  authController.resetPassword
+  authController.ResetPassword
 );
 
 export default router;

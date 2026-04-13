@@ -1,12 +1,11 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { authenticate } from '../middlewares/authMiddleware.js';
-import { authorize } from '../middlewares/roleMiddleware.js';
+import { Authenticate } from '../middlewares/authMiddleware.js';
+import { Authorize } from '../middlewares/roleMiddleware.js';
 import * as ordersController from '../controllers/ordersController.js';
 
 const router = Router();
 
-// Cliente
 /**
  * @swagger
  * /api/orders:
@@ -35,18 +34,24 @@ const router = Router();
  *     responses:
  *       201:
  *         description: Pedido creado
+ *       400:
+ *         description: Bad Request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 router.post(
   '/',
-  authenticate,
-  authorize('Client'),
+  Authenticate,
+  Authorize('Client'),
   [
     body('addressId').notEmpty().withMessage('addressId es requerido'),
-    body('items').isArray({ min: 1 }).withMessage('items debe ser un array con al menos un elemento'),
+    body('items').isArray({ min: 1 }).withMessage('items debe tener al menos un elemento'),
     body('items.*.productId').notEmpty().withMessage('productId es requerido'),
     body('items.*.quantity').isInt({ min: 1 }).withMessage('quantity debe ser mayor que 0'),
   ],
-  ordersController.createOrder
+  ordersController.CreateOrder
 );
 
 /**
@@ -55,11 +60,37 @@ router.post(
  *   get:
  *     summary: Mis pedidos (Client)
  *     tags: [Orders]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [Pending, InProgress, Completed]
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortDirection
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
- *         description: Lista de pedidos
+ *         description: Lista de pedidos del cliente
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/my-orders', authenticate, authorize('Client'), ordersController.getMyOrders);
+router.get('/my-orders', Authenticate, Authorize('Client'), ordersController.GetMyOrders);
 
 /**
  * @swagger
@@ -76,21 +107,44 @@ router.get('/my-orders', authenticate, authorize('Client'), ordersController.get
  *     responses:
  *       200:
  *         description: Detalle del pedido
+ *       404:
+ *         description: Pedido no encontrado
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/my-orders/:id', authenticate, authorize('Client'), ordersController.getMyOrderDetail);
+router.get('/my-orders/:id', Authenticate, Authorize('Client'), ordersController.GetMyOrderDetail);
 
-// Comercio
 /**
  * @swagger
  * /api/orders/commerce:
  *   get:
  *     summary: Pedidos del comercio (Commerce)
  *     tags: [Orders]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [Pending, InProgress, Completed]
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: Lista de pedidos del comercio
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/commerce', authenticate, authorize('Commerce'), ordersController.getCommerceOrders);
+router.get('/commerce', Authenticate, Authorize('Commerce'), ordersController.GetCommerceOrders);
 
 /**
  * @swagger
@@ -107,8 +161,14 @@ router.get('/commerce', authenticate, authorize('Commerce'), ordersController.ge
  *     responses:
  *       200:
  *         description: Detalle del pedido
+ *       404:
+ *         description: Pedido no encontrado
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/commerce/:id', authenticate, authorize('Commerce'), ordersController.getCommerceOrderDetail);
+router.get('/commerce/:id', Authenticate, Authorize('Commerce'), ordersController.GetCommerceOrderDetail);
 
 /**
  * @swagger
@@ -125,21 +185,46 @@ router.get('/commerce/:id', authenticate, authorize('Commerce'), ordersControlle
  *     responses:
  *       200:
  *         description: Delivery asignado
+ *       400:
+ *         description: Pedido no está en Pending
+ *       409:
+ *         description: No hay delivery disponible
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.patch('/:id/assign-delivery', authenticate, authorize('Commerce'), ordersController.assignDelivery);
+router.patch('/:id/assign-delivery', Authenticate, Authorize('Commerce'), ordersController.AssignDelivery);
 
-// Delivery
 /**
  * @swagger
  * /api/orders/delivery:
  *   get:
  *     summary: Pedidos del delivery (Delivery)
  *     tags: [Orders]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [Pending, InProgress, Completed]
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
- *         description: Lista de pedidos
+ *         description: Lista de pedidos del delivery
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/delivery', authenticate, authorize('Delivery'), ordersController.getDeliveryOrders);
+router.get('/delivery', Authenticate, Authorize('Delivery'), ordersController.GetDeliveryOrders);
 
 /**
  * @swagger
@@ -156,8 +241,14 @@ router.get('/delivery', authenticate, authorize('Delivery'), ordersController.ge
  *     responses:
  *       200:
  *         description: Detalle del pedido
+ *       404:
+ *         description: Pedido no encontrado
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/delivery/:id', authenticate, authorize('Delivery'), ordersController.getDeliveryOrderDetail);
+router.get('/delivery/:id', Authenticate, Authorize('Delivery'), ordersController.GetDeliveryOrderDetail);
 
 /**
  * @swagger
@@ -174,7 +265,15 @@ router.get('/delivery/:id', authenticate, authorize('Delivery'), ordersControlle
  *     responses:
  *       200:
  *         description: Pedido completado
+ *       400:
+ *         description: Pedido no está en InProgress
+ *       404:
+ *         description: Pedido no encontrado
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.patch('/:id/complete', authenticate, authorize('Delivery'), ordersController.completeOrder);
+router.patch('/:id/complete', Authenticate, Authorize('Delivery'), ordersController.CompleteOrder);
 
 export default router;

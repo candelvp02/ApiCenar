@@ -1,74 +1,237 @@
-import { validationResult } from 'express-validator';
-import * as adminUsersService from '../services/adminUsersService.js';
+import bcrypt from 'bcrypt';
+import User from '../models/User.js';
+import Commerce from '../models/Commerce.js';
+import Order from '../models/Order.js';
 
-export const getClients = async (req, res) => {
+export async function GetClients(req, res, next) {
   try {
-    const result = await adminUsersService.getClientsService(req.query);
-    res.status(200).json(result);
+    const { search, page = 1, pageSize = 10, sortBy = 'createdAt', sortDirection = 'desc' } = req.query;
+
+    const query = { role: 'Client' };
+    if (search) {
+      query.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const sort = { [sortBy]: sortDirection === 'desc' ? -1 : 1 };
+    const skip = (page - 1) * pageSize;
+
+    const [users, total] = await Promise.all([
+      User.find(query).select('-password').sort(sort).skip(skip).limit(Number(pageSize)),
+      User.countDocuments(query),
+    ]);
+
+    const data = await Promise.all(
+      users.map(async (u) => {
+        const orderCount = await Order.countDocuments({ clientId: u._id });
+        return { ...u.toObject(), orderCount };
+      })
+    );
+
+    res.status(200).json({ data, total, page: Number(page), pageSize: Number(pageSize) });
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
-};
+}
 
-export const getDeliveries = async (req, res) => {
+export async function GetDeliveries(req, res, next) {
   try {
-    const result = await adminUsersService.getDeliveriesService(req.query);
-    res.status(200).json(result);
+    const { search, page = 1, pageSize = 10, sortBy = 'createdAt', sortDirection = 'desc' } = req.query;
+
+    const query = { role: 'Delivery' };
+    if (search) {
+      query.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const sort = { [sortBy]: sortDirection === 'desc' ? -1 : 1 };
+    const skip = (page - 1) * pageSize;
+
+    const [users, total] = await Promise.all([
+      User.find(query).select('-password').sort(sort).skip(skip).limit(Number(pageSize)),
+      User.countDocuments(query),
+    ]);
+
+    const data = await Promise.all(
+      users.map(async (u) => {
+        const orderCount = await Order.countDocuments({ deliveryId: u._id, status: 'Completed' });
+        return { ...u.toObject(), orderCount };
+      })
+    );
+
+    res.status(200).json({ data, total, page: Number(page), pageSize: Number(pageSize) });
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
-};
+}
 
-export const getCommerces = async (req, res) => {
+export async function GetCommerces(req, res, next) {
   try {
-    const result = await adminUsersService.getCommercesService(req.query);
-    res.status(200).json(result);
+    const { search, page = 1, pageSize = 10, sortBy = 'createdAt', sortDirection = 'desc' } = req.query;
+
+    const query = { role: 'Commerce' };
+    if (search) {
+      query.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const sort = { [sortBy]: sortDirection === 'desc' ? -1 : 1 };
+    const skip = (page - 1) * pageSize;
+
+    const [users, total] = await Promise.all([
+      User.find(query).select('-password').sort(sort).skip(skip).limit(Number(pageSize)),
+      User.countDocuments(query),
+    ]);
+
+    const data = await Promise.all(
+      users.map(async (u) => {
+        const commerce = await Commerce.findOne({ userId: u._id });
+        const orderCount = await Order.countDocuments({ commerceId: commerce?._id });
+        return { ...u.toObject(), commerce, orderCount };
+      })
+    );
+
+    res.status(200).json({ data, total, page: Number(page), pageSize: Number(pageSize) });
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
-};
+}
 
-export const getAdmins = async (req, res) => {
+export async function GetAdmins(req, res, next) {
   try {
-    const result = await adminUsersService.getAdminsService(req.query);
-    res.status(200).json(result);
+    const { search, page = 1, pageSize = 10, sortBy = 'createdAt', sortDirection = 'desc' } = req.query;
+
+    const query = { role: 'Admin' };
+    if (search) {
+      query.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const sort = { [sortBy]: sortDirection === 'desc' ? -1 : 1 };
+    const skip = (page - 1) * pageSize;
+
+    const [data, total] = await Promise.all([
+      User.find(query).select('-password').sort(sort).skip(skip).limit(Number(pageSize)),
+      User.countDocuments(query),
+    ]);
+
+    res.status(200).json({ data, total, page: Number(page), pageSize: Number(pageSize) });
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
-};
+}
 
-export const createAdmin = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+export async function CreateAdmin(req, res, next) {
+  const { firstName, lastName, userName, email, password, confirmPassword, phone } = req.body;
 
   try {
-    const result = await adminUsersService.createAdminService(req.body);
+    if (password !== confirmPassword) {
+      const error = new Error('Las contraseñas no coinciden.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const existing = await User.findOne({ $or: [{ userName }, { email }] });
+    if (existing) {
+      const error = new Error(existing.userName === userName ? 'El userName ya existe.' : 'El email ya existe.');
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const admin = await User.create({
+      firstName,
+      lastName,
+      userName,
+      email,
+      password: hashedPassword,
+      phone,
+      role: 'Admin',
+      isActive: true,
+    });
+
+    const { password: _, ...result } = admin.toObject();
     res.status(201).json(result);
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
-};
+}
 
-export const updateAdmin = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+export async function UpdateAdmin(req, res, next) {
+  try {
+    const admin = await User.findById(req.params.id);
+
+    if (!admin) {
+      const error = new Error('Administrador no encontrado.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (admin.isDefault) {
+      const error = new Error('El admin por defecto no puede ser modificado.');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    if (admin.role !== 'Admin') {
+      const error = new Error('El usuario no es administrador.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const updated = await User.findByIdAndUpdate(req.params.id, req.body, { new: true }).select('-password');
+    res.status(200).json(updated);
+  } catch (err) {
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
+  }
+}
+
+export async function UpdateUserStatus(req, res, next) {
+  const { isActive } = req.body;
 
   try {
-    const result = await adminUsersService.updateAdminService(req.params.id, req.body);
-    res.status(200).json(result);
-  } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
-  }
-};
+    if (req.user._id.toString() === req.params.id) {
+      const error = new Error('No puedes cambiar tu propio estado.');
+      error.statusCode = 400;
+      throw error;
+    }
 
-export const updateUserStatus = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      const error = new Error('Usuario no encontrado.');
+      error.statusCode = 404;
+      throw error;
+    }
 
-  try {
-    const result = await adminUsersService.updateUserStatusService(req.user._id, req.params.id, req.body.isActive);
-    res.status(200).json(result);
+    if (user.isDefault) {
+      const error = new Error('El admin por defecto no puede ser modificado.');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    user.isActive = isActive;
+    await user.save();
+
+    res.status(200).json(user);
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
-};
+}

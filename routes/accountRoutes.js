@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/authMiddleware.js';
 import { upload } from '../middlewares/uploadMiddleware.js';
+import { Authenticate } from '../middlewares/authMiddleware.js';
 import * as accountController from '../controllers/accountController.js';
 
 const router = Router();
@@ -14,8 +14,10 @@ const router = Router();
  *     responses:
  *       200:
  *         description: Perfil del usuario
+ *       401:
+ *         description: Unauthorized
  */
-router.get('/me', authenticate, accountController.getProfile);
+router.get('/me', Authenticate, accountController.GetProfile);
 
 /**
  * @swagger
@@ -38,10 +40,18 @@ router.get('/me', authenticate, accountController.getProfile);
  *               profileImage:
  *                 type: string
  *                 format: binary
+ *               email:
+ *                 type: string
+ *               openingTime:
+ *                 type: string
+ *               closingTime:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Perfil actualizado
+ *       401:
+ *         description: Unauthorized
  */
-router.patch('/me', authenticate, upload.single('profileImage'), accountController.updateProfile);
+router.patch('/me', Authenticate, upload.single('profileImage'), accountController.UpdateProfile);
 
 export default router;

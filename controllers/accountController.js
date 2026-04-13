@@ -1,23 +1,66 @@
-import { validationResult } from 'express-validator';
-import * as accountService from '../services/accountService.js';
+import User from '../models/User.js';
+import Commerce from '../models/Commerce.js';
 
-export const getProfile = async (req, res) => {
+export async function GetProfile(req, res, next) {
   try {
-    const profile = await accountService.getProfileService(req.user._id);
-    res.status(200).json(profile);
+    const user = await User.findById(req.user._id).select('-password');
+
+    if (!user) {
+      const error = new Error('Usuario no encontrado.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (user.role === 'Commerce') {
+      const commerce = await Commerce.findOne({ userId: user._id }).populate('commerceTypeId', 'name icon');
+      return res.status(200).json({ ...user.toObject(), commerce });
+    }
+
+    res.status(200).json(user);
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
-};
+}
 
-export const updateProfile = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
+export async function UpdateProfile(req, res, next) {
   try {
-    const updated = await accountService.updateProfileService(req.user._id, req.body, req.file);
-    res.status(200).json(updated);
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      const error = new Error('Usuario no encontrado.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (user.role === 'Client' || user.role === 'Delivery') {
+      const { firstName, lastName, phone } = req.body;
+      if (firstName) user.firstName = firstName;
+      if (lastName) user.lastName = lastName;
+      if (phone) user.phone = phone;
+      if (req.file) user.profileImage = `/public/assets/${req.file.filename}`;
+      await user.save();
+      return res.status(200).json(user);
+    }
+
+    if (user.role === 'Commerce') {
+      const { email, phone, openingTime, closingTime } = req.body;
+      if (email) user.email = email;
+      if (phone) user.phone = phone;
+      await user.save();
+
+      const commerce = await Commerce.findOne({ userId: user._id });
+      if (openingTime) commerce.openingTime = openingTime;
+      if (closingTime) commerce.closingTime = closingTime;
+      if (req.file) commerce.logo = `/public/assets/${req.file.filename}`;
+      await commerce.save();
+
+      return res.status(200).json({ user, commerce });
+    }
+
+    res.status(200).json(user);
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
-};
+}

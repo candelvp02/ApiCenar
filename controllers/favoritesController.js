@@ -1,32 +1,76 @@
-import { validationResult } from 'express-validator';
-import * as favoritesService from '../services/favoritesService.js';
+import Favorite from '../models/Favorite.js';
+import Commerce from '../models/Commerce.js';
+import User from '../models/User.js';
 
-export const getMyFavorites = async (req, res) => {
+export async function GetMyFavorites(req, res, next) {
   try {
-    const result = await favoritesService.getMyFavoritesService(req.user._id, req.query);
-    res.status(200).json(result);
+    const { page = 1, pageSize = 10 } = req.query;
+    const skip = (page - 1) * pageSize;
+
+    const [data, total] = await Promise.all([
+      Favorite.find({ clientId: req.user._id })
+        .skip(skip)
+        .limit(Number(pageSize))
+        .populate({ path: 'commerceId', populate: { path: 'commerceTypeId', select: 'name icon' } }),
+      Favorite.countDocuments({ clientId: req.user._id }),
+    ]);
+
+    res.status(200).json({ data, total, page: Number(page), pageSize: Number(pageSize) });
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
-};
+}
 
-export const addFavorite = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+export async function AddFavorite(req, res, next) {
+  const { commerceId } = req.body;
 
   try {
-    const data = await favoritesService.addFavoriteService(req.user._id, req.body.commerceId);
-    res.status(201).json(data);
+    const commerce = await Commerce.findById(commerceId);
+    if (!commerce) {
+      const error = new Error('Comercio no encontrado.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const commerceUser = await User.findById(commerce.userId);
+    if (!commerceUser || !commerceUser.isActive) {
+      const error = new Error('El comercio no está activo.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const exists = await Favorite.findOne({ clientId: req.user._id, commerceId });
+    if (exists) {
+      const error = new Error('El comercio ya está en favoritos.');
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const favorite = await Favorite.create({ clientId: req.user._id, commerceId });
+    res.status(201).json(favorite);
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
-};
+}
 
-export const removeFavorite = async (req, res) => {
+export async function RemoveFavorite(req, res, next) {
   try {
-    await favoritesService.removeFavoriteService(req.user._id, req.params.commerceId);
+    const favorite = await Favorite.findOneAndDelete({
+      clientId: req.user._id,
+      commerceId: req.params.commerceId,
+    });
+
+    if (!favorite) {
+      const error = new Error('Favorito no encontrado.');
+      error.statusCode = 404;
+      throw error;
+    }
+
     res.status(204).send();
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
-};
+}
