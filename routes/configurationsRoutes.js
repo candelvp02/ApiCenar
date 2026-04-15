@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { authenticate } from '../middlewares/authMiddleware.js';
-import { authorize } from '../middlewares/roleMiddleware.js';
+import { Authenticate } from '../middlewares/authMiddleware.js';
+import { Authorize } from '../middlewares/roleMiddleware.js';
+import { handleValidationErrors } from '../middlewares/handleValidation.js';
 import * as configurationsController from '../controllers/configurationsController.js';
 
 const router = Router();
@@ -10,13 +11,17 @@ const router = Router();
  * @swagger
  * /api/configurations:
  *   get:
- *     summary: Obtener configuraciones (Admin)
+ *     summary: Obtener todas las configuraciones (Admin)
  *     tags: [Configurations]
  *     responses:
  *       200:
  *         description: Lista de configuraciones
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/', authenticate, authorize('Admin'), configurationsController.getConfigurations);
+router.get('/', Authenticate, Authorize('Admin'), configurationsController.GetConfigurations);
 
 /**
  * @swagger
@@ -33,8 +38,14 @@ router.get('/', authenticate, authorize('Admin'), configurationsController.getCo
  *     responses:
  *       200:
  *         description: Configuración encontrada
+ *       404:
+ *         description: Configuración no encontrada
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/:key', authenticate, authorize('Admin'), configurationsController.getConfigurationByKey);
+router.get('/:key', Authenticate, Authorize('Admin'), configurationsController.GetConfigurationByKey);
 
 /**
  * @swagger
@@ -61,13 +72,20 @@ router.get('/:key', authenticate, authorize('Admin'), configurationsController.g
  *     responses:
  *       200:
  *         description: Configuración actualizada
+ *       404:
+ *         description: Configuración no encontrada
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 router.put(
   '/:key',
-  authenticate,
-  authorize('Admin'),
+  Authenticate,
+  Authorize('Admin'),
   [body('value').notEmpty().withMessage('value es requerido')],
-  configurationsController.updateConfiguration
+  handleValidationErrors(),
+  configurationsController.UpdateConfiguration
 );
 
 export default router;

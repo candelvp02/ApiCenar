@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { authenticate } from '../middlewares/authMiddleware.js';
-import { authorize } from '../middlewares/roleMiddleware.js';
+import { Authenticate } from '../middlewares/authMiddleware.js';
+import { Authorize } from '../middlewares/roleMiddleware.js';
 import { upload } from '../middlewares/uploadMiddleware.js';
+import { handleValidationErrors } from '../middlewares/handleValidation.js';
 import * as productsController from '../controllers/productsController.js';
 
 const router = Router();
@@ -16,8 +17,12 @@ const router = Router();
  *     responses:
  *       200:
  *         description: Lista de productos
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/', authenticate, authorize('Commerce'), productsController.getMyProducts);
+router.get('/', Authenticate, Authorize('Commerce'), productsController.GetMyProducts);
 
 /**
  * @swagger
@@ -34,8 +39,14 @@ router.get('/', authenticate, authorize('Commerce'), productsController.getMyPro
  *     responses:
  *       200:
  *         description: Producto encontrado
+ *       404:
+ *         description: Producto no encontrado
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/:id', authenticate, authorize('Commerce'), productsController.getProductById);
+router.get('/:id', Authenticate, Authorize('Commerce'), productsController.GetProductById);
 
 /**
  * @swagger
@@ -65,11 +76,17 @@ router.get('/:id', authenticate, authorize('Commerce'), productsController.getPr
  *     responses:
  *       201:
  *         description: Producto creado
+ *       400:
+ *         description: Bad Request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 router.post(
   '/',
-  authenticate,
-  authorize('Commerce'),
+  Authenticate,
+  Authorize('Commerce'),
   upload.single('image'),
   [
     body('name').notEmpty().withMessage('name es requerido'),
@@ -77,7 +94,8 @@ router.post(
     body('price').isFloat({ min: 0 }).withMessage('price debe ser un número positivo'),
     body('categoryId').notEmpty().withMessage('categoryId es requerido'),
   ],
-  productsController.createProduct
+  handleValidationErrors(),
+  productsController.CreateProduct
 );
 
 /**
@@ -92,22 +110,46 @@ router.post(
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               categoryId:
+ *                 type: string
+ *               image:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       200:
  *         description: Producto actualizado
+ *       404:
+ *         description: Producto no encontrado
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 router.put(
   '/:id',
-  authenticate,
-  authorize('Commerce'),
+  Authenticate,
+  Authorize('Commerce'),
   upload.single('image'),
   [
-    body('name').optional().notEmpty(),
-    body('description').optional().notEmpty(),
-    body('price').optional().isFloat({ min: 0 }),
-    body('categoryId').optional().notEmpty(),
+    body('name').optional().notEmpty().withMessage('name no puede estar vacío'),
+    body('description').optional().notEmpty().withMessage('description no puede estar vacía'),
+    body('price').optional().isFloat({ min: 0 }).withMessage('price debe ser un número positivo'),
+    body('categoryId').optional().notEmpty().withMessage('categoryId no puede estar vacío'),
   ],
-  productsController.updateProduct
+  handleValidationErrors(),
+  productsController.UpdateProduct
 );
 
 /**
@@ -125,7 +167,13 @@ router.put(
  *     responses:
  *       204:
  *         description: Producto eliminado
+ *       404:
+ *         description: Producto no encontrado
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.delete('/:id', authenticate, authorize('Commerce'), productsController.deleteProduct);
+router.delete('/:id', Authenticate, Authorize('Commerce'), productsController.DeleteProduct);
 
 export default router;

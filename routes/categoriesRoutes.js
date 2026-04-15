@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import { Authenticate } from '../middlewares/authMiddleware.js';
 import { Authorize } from '../middlewares/roleMiddleware.js';
+import { handleValidationErrors } from '../middlewares/handleValidation.js';
 import * as categoriesController from '../controllers/categoriesController.js';
 
 const router = Router();
@@ -79,7 +80,7 @@ router.get('/:id', Authenticate, Authorize('Commerce'), categoriesController.Get
  *       403:
  *         description: Forbidden
  */
-router.post('/', Authenticate, Authorize('Commerce'), categoryValidation, categoriesController.CreateCategory);
+router.post('/', Authenticate, Authorize('Commerce'), categoryValidation, handleValidationErrors(), categoriesController.CreateCategory);
 
 /**
  * @swagger
@@ -114,7 +115,7 @@ router.post('/', Authenticate, Authorize('Commerce'), categoryValidation, catego
  *       403:
  *         description: Forbidden
  */
-router.put('/:id', Authenticate, Authorize('Commerce'), categoryValidation, categoriesController.UpdateCategory);
+router.put('/:id', Authenticate, Authorize('Commerce'), categoryValidation, handleValidationErrors(), categoriesController.UpdateCategory);
 
 /**
  * @swagger

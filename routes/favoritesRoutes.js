@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { authenticate } from '../middlewares/authMiddleware.js';
-import { authorize } from '../middlewares/roleMiddleware.js';
+import { Authenticate } from '../middlewares/authMiddleware.js';
+import { Authorize } from '../middlewares/roleMiddleware.js';
+import { handleValidationErrors } from '../middlewares/handleValidation.js';
 import * as favoritesController from '../controllers/favoritesController.js';
 
 const router = Router();
@@ -12,11 +13,24 @@ const router = Router();
  *   get:
  *     summary: Obtener mis favoritos (Client)
  *     tags: [Favorites]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
- *         description: Lista de favoritos
+ *         description: Lista de comercios favoritos
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/', authenticate, authorize('Client'), favoritesController.getMyFavorites);
+router.get('/', Authenticate, Authorize('Client'), favoritesController.GetMyFavorites);
 
 /**
  * @swagger
@@ -37,13 +51,22 @@ router.get('/', authenticate, authorize('Client'), favoritesController.getMyFavo
  *     responses:
  *       201:
  *         description: Favorito agregado
+ *       409:
+ *         description: Ya está en favoritos
+ *       404:
+ *         description: Comercio no encontrado
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 router.post(
   '/',
-  authenticate,
-  authorize('Client'),
+  Authenticate,
+  Authorize('Client'),
   [body('commerceId').notEmpty().withMessage('commerceId es requerido')],
-  favoritesController.addFavorite
+  handleValidationErrors(),
+  favoritesController.AddFavorite
 );
 
 /**
@@ -61,7 +84,13 @@ router.post(
  *     responses:
  *       204:
  *         description: Favorito eliminado
+ *       404:
+ *         description: Favorito no encontrado
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.delete('/:commerceId', authenticate, authorize('Client'), favoritesController.removeFavorite);
+router.delete('/:commerceId', Authenticate, Authorize('Client'), favoritesController.RemoveFavorite);
 
 export default router;

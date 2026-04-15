@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import { Authenticate } from '../middlewares/authMiddleware.js';
 import { Authorize } from '../middlewares/roleMiddleware.js';
+import { handleValidationErrors } from '../middlewares/handleValidation.js';
 import * as ordersController from '../controllers/ordersController.js';
 
 const router = Router();
@@ -51,6 +52,7 @@ router.post(
     body('items.*.productId').notEmpty().withMessage('productId es requerido'),
     body('items.*.quantity').isInt({ min: 1 }).withMessage('quantity debe ser mayor que 0'),
   ],
+  handleValidationErrors(),
   ordersController.CreateOrder
 );
 

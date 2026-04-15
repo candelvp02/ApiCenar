@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import { upload } from '../middlewares/uploadMiddleware.js';
+import { handleValidationErrors } from '../middlewares/handleValidation.js';
 import * as authController from '../controllers/authController.js';
 
 const router = Router();
@@ -36,6 +37,7 @@ router.post(
     body('userNameOrEmail').notEmpty().withMessage('userNameOrEmail es requerido'),
     body('password').notEmpty().withMessage('password es requerido'),
   ],
+  handleValidationErrors(),
   authController.Login
 );
 
@@ -89,6 +91,7 @@ router.post(
     body('confirmPassword').notEmpty().withMessage('confirmPassword es requerido'),
     body('phone').notEmpty().withMessage('phone es requerido'),
   ],
+  handleValidationErrors(),
   authController.RegisterClient
 );
 
@@ -142,6 +145,7 @@ router.post(
     body('confirmPassword').notEmpty().withMessage('confirmPassword es requerido'),
     body('phone').notEmpty().withMessage('phone es requerido'),
   ],
+  handleValidationErrors(),
   authController.RegisterDelivery
 );
 
@@ -203,6 +207,7 @@ router.post(
     body('closingTime').notEmpty().withMessage('closingTime es requerido'),
     body('commerceTypeId').notEmpty().withMessage('commerceTypeId es requerido'),
   ],
+  handleValidationErrors(),
   authController.RegisterCommerce
 );
 
@@ -233,9 +238,8 @@ router.post(
  */
 router.post(
   '/confirm-email',
-  [
-    body('token').notEmpty().withMessage('token es requerido'),
-  ],
+  [body('token').notEmpty().withMessage('token es requerido')],
+  handleValidationErrors(),
   authController.ConfirmEmail
 );
 
@@ -262,9 +266,8 @@ router.post(
  */
 router.post(
   '/forgot-password',
-  [
-    body('userNameOrEmail').notEmpty().withMessage('userNameOrEmail es requerido'),
-  ],
+  [body('userNameOrEmail').notEmpty().withMessage('userNameOrEmail es requerido')],
+  handleValidationErrors(),
   authController.ForgotPassword
 );
 
@@ -302,6 +305,7 @@ router.post(
     body('password').isLength({ min: 6 }).withMessage('password mínimo 6 caracteres'),
     body('confirmPassword').notEmpty().withMessage('confirmPassword es requerido'),
   ],
+  handleValidationErrors(),
   authController.ResetPassword
 );
 

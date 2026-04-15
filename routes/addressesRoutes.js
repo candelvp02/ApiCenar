@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { authenticate } from '../middlewares/authMiddleware.js';
-import { authorize } from '../middlewares/roleMiddleware.js';
+import { Authenticate } from '../middlewares/authMiddleware.js';
+import { Authorize } from '../middlewares/roleMiddleware.js';
+import { handleValidationErrors } from '../middlewares/handleValidation.js';
 import * as addressesController from '../controllers/addressesController.js';
 
 const router = Router();
@@ -23,8 +24,12 @@ const addressValidation = [
  *     responses:
  *       200:
  *         description: Lista de direcciones
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/', authenticate, authorize('Client'), addressesController.getMyAddresses);
+router.get('/', Authenticate, Authorize('Client'), addressesController.GetMyAddresses);
 
 /**
  * @swagger
@@ -41,8 +46,14 @@ router.get('/', authenticate, authorize('Client'), addressesController.getMyAddr
  *     responses:
  *       200:
  *         description: Dirección encontrada
+ *       404:
+ *         description: Dirección no encontrada
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/:id', authenticate, authorize('Client'), addressesController.getAddressById);
+router.get('/:id', Authenticate, Authorize('Client'), addressesController.GetAddressById);
 
 /**
  * @swagger
@@ -50,6 +61,48 @@ router.get('/:id', authenticate, authorize('Client'), addressesController.getAdd
  *   post:
  *     summary: Crear dirección (Client)
  *     tags: [Addresses]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [label, street, sector, city, reference]
+ *             properties:
+ *               label:
+ *                 type: string
+ *               street:
+ *                 type: string
+ *               sector:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               reference:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Dirección creada
+ *       400:
+ *         description: Bad Request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.post('/', Authenticate, Authorize('Client'), addressValidation, handleValidationErrors(), addressesController.CreateAddress);
+
+/**
+ * @swagger
+ * /api/addresses/{id}:
+ *   put:
+ *     summary: Actualizar dirección (Client)
+ *     tags: [Addresses]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -68,28 +121,16 @@ router.get('/:id', authenticate, authorize('Client'), addressesController.getAdd
  *               reference:
  *                 type: string
  *     responses:
- *       201:
- *         description: Dirección creada
- */
-router.post('/', authenticate, authorize('Client'), addressValidation, addressesController.createAddress);
-
-/**
- * @swagger
- * /api/addresses/{id}:
- *   put:
- *     summary: Actualizar dirección (Client)
- *     tags: [Addresses]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
  *       200:
  *         description: Dirección actualizada
+ *       404:
+ *         description: Dirección no encontrada
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.put('/:id', authenticate, authorize('Client'), addressValidation, addressesController.updateAddress);
+router.put('/:id', Authenticate, Authorize('Client'), addressValidation, handleValidationErrors(), addressesController.UpdateAddress);
 
 /**
  * @swagger
@@ -106,7 +147,13 @@ router.put('/:id', authenticate, authorize('Client'), addressValidation, address
  *     responses:
  *       204:
  *         description: Dirección eliminada
+ *       404:
+ *         description: Dirección no encontrada
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.delete('/:id', authenticate, authorize('Client'), addressesController.deleteAddress);
+router.delete('/:id', Authenticate, Authorize('Client'), addressesController.DeleteAddress);
 
 export default router;

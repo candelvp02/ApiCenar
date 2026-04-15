@@ -1,18 +1,17 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { authenticate } from '../middlewares/authMiddleware.js';
-import { authorize } from '../middlewares/roleMiddleware.js';
+import { Authenticate } from '../middlewares/authMiddleware.js';
+import { Authorize } from '../middlewares/roleMiddleware.js';
 import { upload } from '../middlewares/uploadMiddleware.js';
+import { handleValidationErrors } from '../middlewares/handleValidation.js';
 import * as adminDashboardController from '../controllers/adminDashboardController.js';
 import * as adminUsersController from '../controllers/adminUsersController.js';
 import * as commerceTypesController from '../controllers/commerceTypesController.js';
 
 const router = Router();
 
-// Todas las rutas de admin requieren el Admin Role
-router.use(authenticate, authorize('Admin'));
+router.use(Authenticate, Authorize('Admin'));
 
-// Dashboard
 /**
  * @swagger
  * /api/admin/dashboard:
@@ -22,21 +21,41 @@ router.use(authenticate, authorize('Admin'));
  *     responses:
  *       200:
  *         description: Métricas del sistema
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/dashboard', adminDashboardController.getDashboardMetrics);
+router.get('/dashboard', adminDashboardController.GetDashboardMetrics);
 
-// Usuarios
 /**
  * @swagger
  * /api/admin/users/clients:
  *   get:
  *     summary: Listar clientes (Admin)
  *     tags: [Admin Users]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: Lista de clientes
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/users/clients', adminUsersController.getClients);
+router.get('/users/clients', adminUsersController.GetClients);
 
 /**
  * @swagger
@@ -44,11 +63,28 @@ router.get('/users/clients', adminUsersController.getClients);
  *   get:
  *     summary: Listar deliveries (Admin)
  *     tags: [Admin Users]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: Lista de deliveries
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/users/deliveries', adminUsersController.getDeliveries);
+router.get('/users/deliveries', adminUsersController.GetDeliveries);
 
 /**
  * @swagger
@@ -56,11 +92,28 @@ router.get('/users/deliveries', adminUsersController.getDeliveries);
  *   get:
  *     summary: Listar comercios (Admin)
  *     tags: [Admin Users]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: Lista de comercios
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/users/commerces', adminUsersController.getCommerces);
+router.get('/users/commerces', adminUsersController.GetCommerces);
 
 /**
  * @swagger
@@ -68,11 +121,28 @@ router.get('/users/commerces', adminUsersController.getCommerces);
  *   get:
  *     summary: Listar administradores (Admin)
  *     tags: [Admin Users]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: Lista de admins
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/users/admins', adminUsersController.getAdmins);
+router.get('/users/admins', adminUsersController.GetAdmins);
 
 /**
  * @swagger
@@ -105,6 +175,12 @@ router.get('/users/admins', adminUsersController.getAdmins);
  *     responses:
  *       201:
  *         description: Admin creado
+ *       409:
+ *         description: userName o email ya existen
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 router.post(
   '/users/admins',
@@ -114,13 +190,11 @@ router.post(
     body('userName').notEmpty().withMessage('userName es requerido'),
     body('email').isEmail().withMessage('email inválido'),
     body('password').isLength({ min: 6 }).withMessage('password mínimo 6 caracteres'),
-    body('confirmPassword').custom((value, { req }) => {
-      if (value !== req.body.password) throw new Error('Las contraseñas no coinciden');
-      return true;
-    }),
+    body('confirmPassword').notEmpty().withMessage('confirmPassword es requerido'),
     body('phone').notEmpty().withMessage('phone es requerido'),
   ],
-  adminUsersController.createAdmin
+  handleValidationErrors(),
+  adminUsersController.CreateAdmin
 );
 
 /**
@@ -135,11 +209,29 @@ router.post(
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phone:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Admin actualizado
+ *       404:
+ *         description: Admin no encontrado
+ *       403:
+ *         description: Admin por defecto no modificable
+ *       401:
+ *         description: Unauthorized
  */
-router.put('/users/admins/:id', adminUsersController.updateAdmin);
+router.put('/users/admins/:id', adminUsersController.UpdateAdmin);
 
 /**
  * @swagger
@@ -166,25 +258,50 @@ router.put('/users/admins/:id', adminUsersController.updateAdmin);
  *     responses:
  *       200:
  *         description: Estado actualizado
+ *       400:
+ *         description: No puedes cambiar tu propio estado
+ *       403:
+ *         description: Admin por defecto no modificable
+ *       404:
+ *         description: Usuario no encontrado
+ *       401:
+ *         description: Unauthorized
  */
 router.patch(
   '/users/:id/status',
   [body('isActive').isBoolean().withMessage('isActive debe ser un booleano')],
-  adminUsersController.updateUserStatus
+  handleValidationErrors(),
+  adminUsersController.UpdateUserStatus
 );
 
-// Tipos de Comercio (Admin)
 /**
  * @swagger
  * /api/admin/commerce-types:
  *   get:
  *     summary: Listar tipos de comercio (Admin)
  *     tags: [Commerce Types]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
- *         description: Lista de tipos
+ *         description: Lista de tipos de comercio
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/commerce-types', commerceTypesController.getCommerceTypes);
+router.get('/commerce-types', commerceTypesController.GetCommerceTypes);
 
 /**
  * @swagger
@@ -200,9 +317,15 @@ router.get('/commerce-types', commerceTypesController.getCommerceTypes);
  *           type: string
  *     responses:
  *       200:
- *         description: Tipo de comercio
+ *         description: Tipo de comercio encontrado
+ *       404:
+ *         description: No encontrado
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get('/commerce-types/:id', commerceTypesController.getCommerceTypeById);
+router.get('/commerce-types/:id', commerceTypesController.GetCommerceTypeById);
 
 /**
  * @swagger
@@ -225,13 +348,18 @@ router.get('/commerce-types/:id', commerceTypesController.getCommerceTypeById);
  *                 format: binary
  *     responses:
  *       201:
- *         description: Tipo creado
+ *         description: Tipo de comercio creado
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 router.post(
   '/commerce-types',
   upload.single('icon'),
   [body('name').notEmpty().withMessage('name es requerido')],
-  commerceTypesController.createCommerceType
+  handleValidationErrors(),
+  commerceTypesController.CreateCommerceType
 );
 
 /**
@@ -246,11 +374,28 @@ router.post(
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               icon:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       200:
- *         description: Tipo actualizado
+ *         description: Tipo de comercio actualizado
+ *       404:
+ *         description: No encontrado
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.put('/commerce-types/:id', upload.single('icon'), commerceTypesController.updateCommerceType);
+router.put('/commerce-types/:id', upload.single('icon'), commerceTypesController.UpdateCommerceType);
 
 /**
  * @swagger
@@ -267,7 +412,13 @@ router.put('/commerce-types/:id', upload.single('icon'), commerceTypesController
  *     responses:
  *       204:
  *         description: Eliminado en cascada
+ *       404:
+ *         description: No encontrado
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.delete('/commerce-types/:id', commerceTypesController.deleteCommerceType);
+router.delete('/commerce-types/:id', commerceTypesController.DeleteCommerceType);
 
 export default router;
