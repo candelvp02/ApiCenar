@@ -6,7 +6,6 @@ import User from '../models/User.js';
 import Token from '../models/Token.js';
 import Commerce from '../models/Commerce.js';
 import CommerceType from '../models/CommerceType.js';
-import { sendActivationEmail, sendPasswordResetEmail } from '../services/emailService.js';
 
 const signJwt = (payload) => {
   return jwt.sign(payload, process.env.JWT_SECRET, {
