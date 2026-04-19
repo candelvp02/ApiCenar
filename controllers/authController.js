@@ -6,6 +6,7 @@ import User from '../models/User.js';
 import Token from '../models/Token.js';
 import Commerce from '../models/Commerce.js';
 import CommerceType from '../models/CommerceType.js';
+import { sendActivationEmail, sendPasswordResetEmail } from '../utils/emailService.js';
 
 const signJwt = (payload) => {
   return jwt.sign(payload, process.env.JWT_SECRET, {
@@ -327,6 +328,59 @@ export async function ResetPassword(req, res, next) {
     await record.save();
 
     res.status(200).json({ message: 'Contraseña restablecida exitosamente.' });
+  } catch (err) {
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
+  }
+}
+
+export async function ForgotPassword(req, res, next) {
+  const { userNameOrEmail } = req.body;
+  try {
+    const user = await User.findOne({
+      $or: [{ userName: userNameOrEmail }, { email: userNameOrEmail }],
+    });
+    if (!user) {
+      return res.status(200).json({ message: 'If an account exists, a reset link has been sent.' });
+    }
+
+    const resetToken = await generateToken();
+    await Token.create({
+      userId: user._id,
+      token: resetToken,
+      type: 'passwordReset',
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hora
+    });
+
+    await sendPasswordResetEmail(user.email, resetToken);
+    res.status(200).json({ message: 'If an account exists, a reset link has been sent.' });
+  } catch (err) {
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
+  }
+}
+
+export async function ResetPassword(req, res, next) {
+  const { token, password, confirmPassword } = req.body;
+  try {
+    if (password !== confirmPassword) {
+      const error = new Error('Passwords do not match.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const resetToken = await Token.findOne({ token, type: 'passwordReset' });
+    if (!resetToken || resetToken.expiresAt < new Date()) {
+      const error = new Error('Invalid or expired token.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await User.findByIdAndUpdate(resetToken.userId, { password: hashedPassword });
+    await Token.deleteOne({ _id: resetToken._id });
+
+    res.status(200).json({ message: 'Password reset successful.' });
   } catch (err) {
     if (!err.statusCode) err.statusCode = 500;
     next(err);
