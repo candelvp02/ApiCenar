@@ -275,67 +275,6 @@ export async function ConfirmEmail(req, res, next) {
 
 export async function ForgotPassword(req, res, next) {
   const { userNameOrEmail } = req.body;
-
-  try {
-    const user = await User.findOne({
-      $or: [{ userName: userNameOrEmail }, { email: userNameOrEmail }],
-    });
-
-    if (!user) {
-      return res.status(200).json({ message: 'Si el usuario existe, se ha enviado un correo de recuperación.' });
-    }
-
-    const resetToken = await generateToken();
-
-    await Token.create({
-      userId: user._id,
-      token: resetToken,
-      type: 'reset',
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    });
-
-    await sendPasswordResetEmail(user.email, resetToken);
-
-    res.status(200).json({ message: 'Si el usuario existe, se ha enviado un correo de recuperación.' });
-  } catch (err) {
-    if (!err.statusCode) err.statusCode = 500;
-    next(err);
-  }
-}
-
-export async function ResetPassword(req, res, next) {
-  const { token, password, confirmPassword } = req.body;
-
-  try {
-    if (password !== confirmPassword) {
-      const error = new Error('Las contraseñas no coinciden.');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const record = await Token.findOne({ token, type: 'reset' });
-
-    if (!record || record.used || record.expiresAt < new Date()) {
-      const error = new Error('Token inválido o expirado.');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await User.findByIdAndUpdate(record.userId, { password: hashedPassword });
-
-    record.used = true;
-    await record.save();
-
-    res.status(200).json({ message: 'Contraseña restablecida exitosamente.' });
-  } catch (err) {
-    if (!err.statusCode) err.statusCode = 500;
-    next(err);
-  }
-}
-
-export async function ForgotPassword(req, res, next) {
-  const { userNameOrEmail } = req.body;
   try {
     const user = await User.findOne({
       $or: [{ userName: userNameOrEmail }, { email: userNameOrEmail }],
@@ -349,7 +288,7 @@ export async function ForgotPassword(req, res, next) {
       userId: user._id,
       token: resetToken,
       type: 'passwordReset',
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hora
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
 
     await sendPasswordResetEmail(user.email, resetToken);
