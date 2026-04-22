@@ -239,7 +239,7 @@ export async function RegisterCommerce(req, res, next) {
 }
 
 export async function ConfirmEmail(req, res, next) {
-  const { token } = req.body;
+  const token = req.body.token || req.query.token;
 
   try {
     if (!token) {
@@ -249,7 +249,6 @@ export async function ConfirmEmail(req, res, next) {
     }
 
     const record = await Token.findOne({ token, type: 'activation' });
-
     if (!record) {
       const error = new Error('Token no encontrado.');
       error.statusCode = 404;
@@ -265,7 +264,7 @@ export async function ConfirmEmail(req, res, next) {
     await User.findByIdAndUpdate(record.userId, { isActive: true });
     record.used = true;
     await record.save();
-
+    
     res.status(200).json({ message: 'Cuenta activada exitosamente.' });
   } catch (err) {
     if (!err.statusCode) err.statusCode = 500;

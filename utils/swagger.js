@@ -9,10 +9,10 @@ const options = {
       version: '1.0.0',
       description: 'API RESTful para la plataforma de pedidos de comida Cenar',
     },
-    servers: [
+servers: [
       {
         url: process.env.APP_URL || 'http://localhost:3000',
-        description: `${process.env.NODE_ENV} server`,
+        description: `${process.env.NODE_ENV || 'development'} server`,
       },
     ],
     components: {

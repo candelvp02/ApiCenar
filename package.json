@@ -4,7 +4,7 @@
   "type": "module",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon app.js",
+    "start": "node utils/seed.js && nodemon app.js",
     "dev": "cross-env NODE_ENV=development nodemon app.js",
     "qa": "cross-env NODE_ENV=qa nodemon app.js",
     "prod": "cross-env NODE_ENV=production node app.js"
@@ -27,6 +27,7 @@
     "mongoose": "^8.16.5",
     "multer": "^2.0.1",
     "nodemailer": "^7.0.5",
+    "resend": "^6.12.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.1.0"
