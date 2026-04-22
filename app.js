@@ -16,6 +16,7 @@ const env = process.env.NODE_ENV || 'qa';
 dotenv.config({ path: `.env.${env}` });
 
 const app = express();
+
 const PORT = process.env.PORT || 8080;
 
 const corsOptions = {
@@ -33,7 +34,12 @@ app.use('/api', router);
 
 app.use(errorHandler);
 
+
 swaggerDocs(app);
+
+app.get('/', (req, res) => {
+  res.redirect('/api-docs');
+});
 
 connectDB().then(async () => {
   await seedDatabase();
