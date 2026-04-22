@@ -35,11 +35,13 @@ app.use('/api', router);
 app.use(errorHandler);
 
 
-swaggerDocs(app);
+
 
 app.get('/', (req, res) => {
   res.redirect('/api-docs');
 });
+
+swaggerDocs(app);
 
 connectDB().then(async () => {
   await seedDatabase();
